@@ -1,22 +1,103 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'maven3'
+    }
+
+    environment {
+        DOCKER_IMAGE = "gautam1996/mcapp-demo"
+        GITHUB_REPO  = "https://github.com/gautams18/mcapp-demo.git"
+        SONAR_URL    = "http://34.229.252.142:9000/"
+    }
+
     stages {
+
         stage('Checkout') {
             steps {
                 echo "Checking out code from GitHub..."
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[url: 'https://github.com/gautams18/mcapp-demo.git']]
-                ])
+                git branch: 'main', url: "${env.GITHUB_REPO}"
             }
         }
 
-        stage('Dummy Build') {
+        stage('SonarQube Scan') {
             steps {
-                echo "Repo is not empty now. This is a placeholder build step."
+                withCredentials([string(credentialsId: 'sonartoken', variable: 'SONAR_TOKEN')]) {
+                    sh """
+                      mvn clean verify sonar:sonar \
+                        -Dsonar.host.url=${SONAR_URL} \
+                        -Dsonar.login=${SONAR_TOKEN}
+                    """
+                }
+            }
+        }
+
+        stage('Build with Maven') {
+            steps {
+                echo "Building application with Maven..."
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo "Building Docker image..."
+                sh """
+                  docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                """
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                echo "Logging into Docker Hub and pushing image..."
+                withCredentials([usernamePassword(credentialsId: 'dockerhub',
+                                                 usernameVariable: 'DOCKER_USER',
+                                                 passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                      docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                    """
+                }
+            }
+        }
+
+        stage('Update Kubernetes Deployment File') {
+            steps {
+                echo "Updating deployment YAML with new image tag..."
+                sh """
+                  sed -i 's#image: .*#image: ${DOCKER_IMAGE}:${BUILD_NUMBER}#' deploymentfiles/deployment.yaml
+
+                  git config user.email "gautamsaipatel.gmailcom"
+                  git config user.name "gautams18"
+
+                  git status
+                  git add deploymentfiles/deployment.yaml
+                  git commit -m "Update image tag to ${BUILD_NUMBER}" || echo "No changes to commit"
+                  git push origin main
+                """
             }
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+  
+
