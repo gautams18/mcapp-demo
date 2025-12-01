@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcapp-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mcapp
+  template:
+    metadata:
+      labels:
+        app: mcapp
+    spec:
+      containers:
+        - name: mcapp
+          image: gautam1996/mcapp-demo:latest
+          ports:
+            - containerPort: 8080

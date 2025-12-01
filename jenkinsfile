@@ -1,0 +1,22 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Checking out code from GitHub..."
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[url: 'https://github.com/gautams18/mcapp-demo.git']]
+                ])
+            }
+        }
+
+        stage('Dummy Build') {
+            steps {
+                echo "Repo is not empty now. This is a placeholder build step."
+            }
+        }
+    }
+}

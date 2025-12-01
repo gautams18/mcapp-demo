@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcapp-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: mcapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
