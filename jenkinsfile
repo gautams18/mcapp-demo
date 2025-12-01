@@ -8,7 +8,6 @@ pipeline {
     environment {
         DOCKER_IMAGE = "gautam1996/mcapp-demo"
         GITHUB_REPO  = "https://github.com/gautams18/mcapp-demo.git"
-        SONAR_URL    = "http://34.229.252.142:9000/"
     }
 
     stages {
@@ -20,22 +19,10 @@ pipeline {
             }
         }
 
-        stage('SonarQube Scan') {
-            steps {
-                withCredentials([string(credentialsId: 'sonartoken', variable: 'SONAR_TOKEN')]) {
-                    sh """
-                      mvn clean verify sonar:sonar \
-                        -Dsonar.host.url=${SONAR_URL} \
-                        -Dsonar.login=${SONAR_TOKEN}
-                    """
-                }
-            }
-        }
-
         stage('Build with Maven') {
             steps {
                 echo "Building application with Maven..."
-                sh 'mvn clean package -DskipTests'
+                sh 'mvn -B clean package -DskipTests'
             }
         }
 
@@ -50,7 +37,7 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                echo "Logging into Docker Hub and pushing image..."
+                echo "Pushing Docker image to Docker Hub..."
                 withCredentials([usernamePassword(credentialsId: 'dockerhub',
                                                  usernameVariable: 'DOCKER_USER',
                                                  passwordVariable: 'DOCKER_PASS')]) {
@@ -62,24 +49,94 @@ pipeline {
             }
         }
 
-        stage('Update Kubernetes Deployment File') {
+        stage('Done') {
             steps {
-                echo "Updating deployment YAML with new image tag..."
-                sh """
-                  sed -i 's#image: .*#image: ${DOCKER_IMAGE}:${BUILD_NUMBER}#' deploymentfiles/deployment.yaml
-
-                  git config user.email "gautamsaipatel.gmailcom"
-                  git config user.name "gautams18"
-
-                  git status
-                  git add deploymentfiles/deployment.yaml
-                  git commit -m "Update image tag to ${BUILD_NUMBER}" || echo "No changes to commit"
-                  git push origin main
-                """
+                echo "Build and Docker push completed successfully."
             }
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
